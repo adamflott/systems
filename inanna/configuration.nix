@@ -1,281 +1,209 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
-  unstableTarball =
-    fetchTarball
-      https://github.com/NixOS/nixpkgs-channels/archive/nixos-unstable.tar.gz;
+  hostname = "inanna";
+  lanCIDR = "10.0.5.0/24";
 in
 {
-  imports =
-    [
-      ./hardware-configuration.nix
-    ];
+  imports = [
+    ./hardware-configuration.nix
+    ./observability.nix
+  ];
 
-  # Use the systemd-boot EFI boot loader.
-  boot.kernelParams = [ "radeon.audio=0" ];
-#  boot.kernelPackages = pkgs.linuxPackages_5_8;
-  boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.blacklistedKernelModules = [ "snd_pcsp" ];
+  boot.supportedFilesystems = [ "zfs" ];
+  boot.zfs.forceImportRoot = false;
 
-  hardware.cpu.amd.updateMicrocode = true;
-
-  hardware.pulseaudio.enable = true;
-  hardware.pulseaudio.support32Bit = true;
-
-  hardware.video.hidpi.enable = true;
-
-  #hardware.opengl.driSupport32Bit = true;
-  #hardware.opengl.extraPackages32 = with pkgs.pkgsi686Linux; [ libva ];
-
-  hardware.sane.enable = true;
-
-  hardware.bluetooth.enable = true;
-  hardware.bluetooth.package = pkgs.bluezFull;
-
-  
-  fileSystems."/void" = {
-    device = "10.0.5.10:/void";
-    fsType = "nfs";
-    options = ["x-systemd.automount" "noauto"];
+  networking.networkmanager.enable = true;
+  networking.hostId = "e426c146";
+  networking.hostName = hostname;
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [
+      22
+      445
+      139
+    ];
+    allowedUDPPorts = [
+      137
+      138
+    ];
   };
 
-  networking.useDHCP = true;
-  networking.hostName = "inanna";
-  networking.firewall.enable = true;
-  networking.firewall.allowedTCPPorts = [ 22 2222 4040 3000 8333 ];
-  networking.firewall.allowPing = true;
+  time.timeZone = "America/New_York";
+
+  i18n.defaultLocale = "en_US.UTF-8";
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "en_US.UTF-8";
+    LC_IDENTIFICATION = "en_US.UTF-8";
+    LC_MEASUREMENT = "en_US.UTF-8";
+    LC_MONETARY = "en_US.UTF-8";
+    LC_NAME = "en_US.UTF-8";
+    LC_NUMERIC = "en_US.UTF-8";
+    LC_PAPER = "en_US.UTF-8";
+    LC_TELEPHONE = "en_US.UTF-8";
+    LC_TIME = "en_US.UTF-8";
+  };
+
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "";
+  };
+
+  programs.fish.enable = true;
+
+  users.users.root = {
+    shell = pkgs.fish;
+  };
+  users.users."adam" = {
+    isNormalUser = true;
+    description = "Adam Flott";
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "media"
+    ];
+    packages = with pkgs; [ ];
+    shell = pkgs.fish;
+  };
 
   nixpkgs.config.allowUnfree = true;
 
-  console ={
-    keyMap = "us";
-    font = "Lat2-Terminus16";
-  };
-
-  time.timeZone = "US/Eastern";
-
-  environment.homeBinInPath = true;
   environment.systemPackages = with pkgs; [
-     SDL
-     SDL2
-     SDL2_mixer
-     airsonic
-     alsaLib
-     alsaTools
-     alsaUtils
-     apacheKafka
-     apcupsd
-     apg
-     aspell
-     aspellDicts.en
-     aspellDicts.en-computers
-     aspellDicts.en-science
-     atop
-     audacity
-     bind
-     binutils
-     bitcoin
-     chrony
-     claws-mail
-     cmus
-     darktable
-     dcm2niix
-     dep
-     digikam
-     dmidecode
-     dnsutils
-     dvdplusrwtools
-     electrum
-     elinks
-     emacs
-     ffmpeg-full
-     file
-     filezilla
-     fluidsynth
-     gcc9
-     gdb
-     geeqie
-     ghc
-     gimp
-     gitAndTools.git-hub
-     gitAndTools.gitFull
-     glxinfo
-     gnumake
-     gnupg
-     go
-     haskellPackages.xmonad
-     haskellPackages.xmonad-contrib
-     haskellPackages.xmonad-extras
-     haskellPackages.xmonad-utils
-     haskellPackages.xmonad-wallpaper
-     haskellPackages.yeganesh
-     hddtemp
-     hdparm
-     hlint
-     html-tidy
-     htop
-     imagemagick
-     imapsync
-     inxi
-     iotop
-     ispell
-     iw
-     jq
-     kdeApplications.okular
-     kodi
-     libinput
-     libstrophe
-     lm_sensors
-     lsb-release
-     lsof
-     man-pages
-     mplayer
-     mtr
-     nix-index
-     nmap
-     nmon
-     openssl
-     p7zip
-     pass
-     pciutils
-     pidgin
-     pstree
-     redis
-     redshift
-     ripgrep
-     ruby
-     rustup
-     smartmontools
-     socat
-     sshfs-fuse
-     sshguard
-     stack
-     stunnel
-     tmux
-     tree
-     ttyplot
-     unrar
-     unzip
-     usbutils
-     vim
-     wget 
-     whois
-     wine
-     wirelesstools
-     wireshark
-     wrk
-     xclip
-     xmobar
-     xorg.xdpyinfo
-     xorg.xeyes
-     xscreensaver
-     yq
-     yquake2-all-games
-     zip
-     zlib
-     zsh
-     zsh-autosuggestions
+    btop
+    curl
+    emacs
+    git
+    htop
+    iftop
+    inxi
+    iotop
+    lm_sensors
+    mc
+    neovim
+    nixfmt
+    nvme-cli
+    openssl
+    pciutils
+    rclone
+    tmux
+    usbutils
+    zfs
   ];
 
   programs.mtr.enable = true;
-
-  programs.gnupg.agent.enable = true;
-
-  services.openssh.enable = true;
-  services.openssh.forwardX11 = true;
-  services.openssh.ports = [ 22 2222 ];
-  services.openssh.passwordAuthentication = false;
-  services.openssh.permitRootLogin = "no";
-  services.sshguard.enable = true;
-
-  services.printing.enable = true;
-
-  sound.enable = true;
-
-  services.upower.enable = true;
-  systemd.services.upower.enable = true;
-
-  services.logind.extraConfig = ''
-       HandlePowerKey=ignore
-  '';
-
-  services.xserver.enable = true;
-  services.xserver.layout = "us";
-  services.xserver.xkbOptions = "ctrl:nocaps";
-
-  # services.xserver.displayManager.sddm.enable = true;
-  services.xserver.desktopManager.plasma5.enable = true;
-  services.xserver.libinput.enable = true;
-  services.xserver.windowManager.xmonad.enable = true;
-  services.xserver.windowManager.xmonad.enableContribAndExtras = true;
-
-  users.users.adam = {
-     description = "Adam Flott";
-     isNormalUser = true;
-     extraGroups = [
-	 "audio"
-	 "cdrom"
-	 "disk"
-	 "docker"
-	 "lp"
-	 "networkmanager"
-	 "scanner"
-	 "systemd-journal"
-	 "users"
-	 "vboxusers"
-	 "video"
-         "wheel"
-     ];
-     shell = pkgs.zsh;
-  };
-
-  security.pam.loginLimits = [
-      { domain = "adam"; item = "nofile"; type = "hard"; value = "65536"; }
-  ];
-
-  security.pki.certificateFiles = [
-    /root/pki/AkamaiClientCA.pem
-    /root/pki/AkamaiCorpRoot-G1.pem
-    /root/pki/AkamaiIssuerSHA2.pem
-    /root/pki/akamai-pki-issuing.pem
-    /root/pki/akamai-pki.pem
-    /root/pki/AkamaiServerCA.pem
-  ];
-  
-  security.sudo.wheelNeedsPassword = false;
-
-  programs.zsh.enable = true;
-  programs.zsh.autosuggestions.enable = true;
-
-  virtualisation.docker.enable = true;
-  virtualisation.libvirtd.enable = true;
-  #virtualisation.virtualbox.host.enable = true;
-  #virtualisation.virtualbox.host.enableExtensionPack = true;
-  
-  services.airsonic = {
+  programs.gnupg.agent = {
     enable = true;
-    maxMemory = 4096;
-    listenAddress = "0.0.0.0";
+    enableSSHSupport = true;
   };
 
-  services.zookeeper.enable = true;
-  
-  services.apache-kafka = {
+  services.openssh = {
     enable = true;
-    extraProperties = ''
-offsets.topic.replication.factor=1
-delete.topic.enable=true
-'';
+    settings = {
+      PermitRootLogin = "no";
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+    };
   };
 
-  services.apcupsd.enable = true;
-  
-  # This value determines the NixOS release with which your system is to be
-  # compatible, in order to avoid breaking some software such as database
-  # servers. You should change this only after NixOS release notes say you
-  # should.
-  system.stateVersion = "19.03"; # Did you read the comment?
+  services.zfs = {
+    autoScrub = {
+      enable = true;
+      interval = "monthly";
+    };
+
+    trim = {
+      enable = true;
+      interval = "weekly";
+    };
+
+    autoSnapshot = {
+      enable = true;
+      frequent = 8;
+      hourly = 24;
+      daily = 14;
+      weekly = 8;
+      monthly = 6;
+    };
+  };
+
+  #  fileSystems."/void" = {
+  #    device = "void";
+  #    fsType = "zfs";
+  #  };
+
+  #  fileSystems."/vacuum" = {
+  #    device = "vacuum";
+  #    fsType = "zfs";
+  #  };
+
+  users.groups.media = { };
+
+  users.users.samba = {
+    isSystemUser = true;
+    group = "media";
+  };
+
+  services.samba = {
+    enable = true;
+    openFirewall = true;
+
+    settings = {
+      global = {
+        workgroup = "WORKGROUP";
+        "server string" = hostname;
+        "netbios name" = hostname;
+        security = "user";
+        "map to guest" = "Bad User";
+        "server min protocol" = "SMB3";
+        "smb encrypt" = "desired";
+      };
+
+      void = {
+        path = "/void";
+        browseable = "yes";
+        writable = "yes";
+        "guest ok" = "no";
+        "valid users" = "@media";
+        "create mask" = "0664";
+        "directory mask" = "0775";
+      };
+      vacuum = {
+        path = "/vacuum";
+        browseable = "yes";
+        writable = "yes";
+        "guest ok" = "no";
+        "valid users" = "@media";
+        "create mask" = "0664";
+        "directory mask" = "0775";
+      };
+    };
+  };
+
+  services.samba-wsdd = {
+    enable = true;
+    openFirewall = true;
+  };
+
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish.enable = true;
+    publish.userServices = true;
+  };
+
+  # This value determines the NixOS release from which the default
+  # settings for stateful data, like file locations and database versions
+  # on your system were taken. It‘s perfectly fine and recommended to leave
+  # this value at the release version of the first install of this system.
+  # Before changing this value read the documentation for this option
+  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
+  system.stateVersion = "26.05"; # Did you read the comment?
 
 }
